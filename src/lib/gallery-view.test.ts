@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import sample from '../../data/gallery.json';
+import sample from '../../data';
 import { gallerySchema } from './gallery-schema';
 import { albumsFor, pageOf, orderedAlbums, termsFor } from './gallery-view';
 

@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import sample from '../../data/gallery.json';
+import sample from '../../data';
 import { gallerySchema, type Gallery } from './gallery-schema';
 
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
@@ -58,7 +58,7 @@ async function loadGallery(): Promise<Gallery> {
     }
   }
   const parsed = gallerySchema.safeParse(raw);
-  if (!parsed.success) throw new GalleryUnavailableError(`Invalid gallery JSON: ${parsed.error.issues[0]?.message ?? 'unknown schema error'}`);
+  if (!parsed.success) throw new GalleryUnavailableError(`Invalid gallery data: ${parsed.error.issues[0]?.message ?? 'unknown schema error'}`);
   return parsed.data;
 }
 

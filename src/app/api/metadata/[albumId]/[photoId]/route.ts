@@ -13,8 +13,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ alb
     const photo = album?.photos.find(item => item.id === photoId);
     if (!photo) return NextResponse.json({ error: 'Photo not found' }, { status: 404, headers: { 'Cache-Control': 'no-store' } });
     let facts = {};
-    try { facts = await extractPhotoFacts(photo.metadataSrc ?? photo.src); }
-    catch (error) { console.info('EXIF unavailable:', error); }
+    const factFields = ['camera', 'lens', 'focal_length', 'aperture', 'shutter', 'iso', 'taken'] as const;
+    if (factFields.some(field => !photo[field])) {
+      try { facts = await extractPhotoFacts(photo.metadataSrc ?? photo.src); }
+      catch (error) { console.info('EXIF unavailable:', error); }
+    }
     return NextResponse.json({ facts }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('Metadata API unavailable:', error);

@@ -102,7 +102,7 @@ export function Lightbox({ albums, selection, source, onMove, onSelect, onClose 
     image.src = photo.src;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(false);
-    // Reset facts for the newly selected remote image.
+    // Reset facts for the newly selected image.
     setExtracted({});
     setLoadMessage('正在加载照片…');
     fetch(`/api/metadata/${encodeURIComponent(album.id)}/${encodeURIComponent(photo.id)}`, { cache: 'no-store', signal: controller.signal })

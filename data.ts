@@ -1,4 +1,6 @@
-{
+import type { Gallery } from './src/lib/gallery-schema';
+
+const data: Gallery = {
   "version": 1,
   "albums": [
     {
@@ -368,4 +370,6 @@
       ]
     }
   ]
-}
+};
+
+export default data;

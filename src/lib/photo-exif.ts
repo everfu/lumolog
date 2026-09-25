@@ -1,5 +1,7 @@
 import { lookup } from 'node:dns/promises';
+import { open } from 'node:fs/promises';
 import { isIP } from 'node:net';
+import { join } from 'node:path';
 import { parse as parseExif } from 'exifr/dist/full.esm.mjs';
 
 export type ExtractedFacts = {
@@ -8,6 +10,7 @@ export type ExtractedFacts = {
 };
 
 const MAX_READ_BYTES = 1024 * 1024;
+const localImageUrl = /^\/images\/[a-zA-Z0-9/_-]+\.(?:jpe?g|png|webp|avif)$/;
 
 function publicIp(ip: string) {
   if (isIP(ip) === 4) {
@@ -67,6 +70,23 @@ async function fetchImageHead(source: string): Promise<Uint8Array> {
   throw new Error('Too many image redirects');
 }
 
+async function readLocalImageHead(source: string): Promise<Uint8Array> {
+  if (!localImageUrl.test(source)) throw new Error('Unsupported local image path');
+  const file = await open(join(process.cwd(), 'public', source.slice(1)), 'r');
+  try {
+    const bytes = Buffer.allocUnsafe(MAX_READ_BYTES);
+    let size = 0;
+    while (size < MAX_READ_BYTES) {
+      const { bytesRead } = await file.read(bytes, size, MAX_READ_BYTES - size, size);
+      if (bytesRead === 0) break;
+      size += bytesRead;
+    }
+    return bytes.subarray(0, size);
+  } finally {
+    await file.close();
+  }
+}
+
 function shutter(value: unknown): string | undefined {
   if (typeof value === 'string') return value.replace(/s$/, '');
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
@@ -94,6 +114,7 @@ export async function parsePhotoFacts(bytes: Uint8Array): Promise<ExtractedFacts
 }
 
 export async function extractPhotoFacts(source: string): Promise<ExtractedFacts> {
-  if (!source.startsWith('https://')) return {};
-  return parsePhotoFacts(await fetchImageHead(source));
+  if (source.startsWith('https://')) return parsePhotoFacts(await fetchImageHead(source));
+  if (source.startsWith('/images/')) return parsePhotoFacts(await readLocalImageHead(source));
+  return {};
 }
