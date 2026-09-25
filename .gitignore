@@ -1,0 +1,10 @@
+.DS_Store
+/dist/
+/node_modules/
+/.next/
+/.env*
+!/.env.example
+*.tsbuildinfo
+
+# Local Netlify folder
+.netlify

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" role="img" aria-label="lumolog 相册照片墙标识">
+<title>lumolog · 相册照片墙</title>
+<!-- The letter is drawn as a simple vector mark. -->
+<defs>
+  <linearGradient id="cover" x1="17" y1="20" x2="105" y2="106" gradientUnits="userSpaceOnUse"><stop stop-color="#52C8FF"/><stop offset=".55" stop-color="#168BFF"/><stop offset="1" stop-color="#5D61E8"/></linearGradient>
+  <linearGradient id="hero" x1="58" y1="29" x2="103" y2="103" gradientUnits="userSpaceOnUse"><stop stop-color="#284978"/><stop offset=".47" stop-color="#2F6FAC"/><stop offset="1" stop-color="#9676A7"/></linearGradient>
+  <linearGradient id="dusk" x1="29" y1="31" x2="55" y2="62" gradientUnits="userSpaceOnUse"><stop stop-color="#C78AA7"/><stop offset="1" stop-color="#FFB680"/></linearGradient>
+  <linearGradient id="letter" x1="64" y1="55" x2="95" y2="92" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFFFF"/><stop offset=".55" stop-color="#E5F8FF"/><stop offset="1" stop-color="#78D8FF"/></linearGradient>
+  <clipPath id="upper"><rect x="29" y="31" width="26" height="31" rx="4"/></clipPath>
+  <clipPath id="lower"><rect x="29" y="66" width="26" height="35" rx="4"/></clipPath>
+</defs>
+<rect width="128" height="128" rx="30" fill="#171D2B"/>
+<rect x="18" y="21" width="83" height="85" rx="12" fill="url(#cover)" transform="rotate(-7 18 21)"/>
+<rect x="23" y="25" width="84" height="84" rx="11" fill="#F5F7FC"/>
+<g clip-path="url(#upper)"><rect x="29" y="31" width="26" height="31" fill="url(#dusk)"/><circle cx="46" cy="42" r="5" fill="#FFE3BC"/><path d="M29 57c6-10 14-9 26-3v8H29v-5Z" fill="#6A537A"/></g>
+<g clip-path="url(#lower)"><rect x="29" y="66" width="26" height="35" fill="#7FC5C0"/><path d="M29 87c8-6 16-8 26-4v18H29V87Z" fill="#296A78"/><path d="M34 98c7-5 14-5 21-4" stroke="#D7FFFF" stroke-width="2"/></g>
+<rect x="59" y="31" width="42" height="70" rx="4" fill="url(#hero)"/>
+<circle cx="84" cy="44" r="7" fill="#FBC49A"/>
+<path d="M59 83c10-18 27-20 42-13v31H59V83Z" fill="#283C68"/>
+<path d="M59 92c15-6 27-3 42 2" stroke="#98C8DC" stroke-width="3"/>
+<path d="M77 57v26c0 5 2 7 7 7h10" stroke="url(#letter)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
