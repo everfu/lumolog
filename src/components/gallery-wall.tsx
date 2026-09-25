@@ -15,6 +15,7 @@ export function GalleryWall({ initialAlbums, total, title, intro, kind, term, pa
   const [loading, setLoading] = useState(false);
   const [observerSupported, setObserverSupported] = useState(true);
   const [selection, setSelection] = useState<Selection>(null);
+  const openedFrom = useRef<HTMLButtonElement>(null);
   const sentinel = useRef<HTMLDivElement>(null);
   const inFlight = useRef(false);
 
@@ -63,12 +64,12 @@ export function GalleryWall({ initialAlbums, total, title, intro, kind, term, pa
   const fallbackHref = `${fallbackBase}${fallbackBase.includes('?') ? '&' : '?'}page=${nextPage}`;
   return <section className="gallery-section" aria-labelledby="gallery-title">
     <div className="gallery-heading"><div><p className="eyebrow">lumolog collection</p><h1 id="gallery-title">{title}</h1>{intro && <p>{intro}</p>}</div><span className="gallery-count">{total} 组作品</span></div>
-    {albums.length ? <div className="gallery-grid">{albums.map((album, index) => <GalleryCard key={album.id} album={album} index={index} onOpen={() => setSelection({ albumIndex: index, photoIndex: 0 })} />)}</div> : <p className="empty-state">这里还没有作品。</p>}
+    {albums.length ? <div className="gallery-grid">{albums.map((album, index) => <GalleryCard key={album.id} album={album} index={index} onOpen={source => { openedFrom.current = source; setSelection({ albumIndex: index, photoIndex: 0 }); }} />)}</div> : <p className="empty-state">这里还没有作品。</p>}
     {hasMore && <div className="gallery-load-more" ref={sentinel}>
       {loading && <span className="gallery-load-status" role="status">正在加载更多作品…</span>}
       {(failed || !observerSupported) && <a className="gallery-load-fallback" href={fallbackHref}>{failed ? '加载失败，点击继续浏览' : '继续浏览更多作品'}</a>}
       <noscript><a className="gallery-load-fallback" href={fallbackHref}>继续浏览更多作品</a></noscript>
     </div>}
-    <Lightbox albums={albums} selection={selection} onMove={move} onSelect={index => setSelection(current => current ? { ...current, photoIndex: index } : null)} onClose={() => setSelection(null)} />
+    <Lightbox albums={albums} selection={selection} source={openedFrom} onMove={move} onSelect={index => setSelection(current => current ? { ...current, photoIndex: index } : null)} onClose={() => setSelection(null)} />
   </section>;
 }

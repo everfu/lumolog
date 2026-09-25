@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { Album } from '@/lib/gallery-schema';
 import { displayFacts, type CameraFacts } from '@/lib/photo-facts';
 
@@ -9,36 +9,89 @@ function Fact({ children, text }: { children: React.ReactNode; text: string }) {
   return text ? <span className="lightbox-fact">{children}<span>{text}</span></span> : null;
 }
 
-export function Lightbox({ albums, selection, onMove, onSelect, onClose }: {
-  albums: Album[]; selection: Selection; onMove: (delta: number) => void;
+export function Lightbox({ albums, selection, source, onMove, onSelect, onClose }: {
+  albums: Album[]; selection: Selection; source: RefObject<HTMLButtonElement | null>; onMove: (delta: number) => void;
   onSelect: (index: number) => void; onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const shell = useRef<HTMLDivElement>(null);
+  const closing = useRef(false);
   const touchStart = useRef(0);
-  const [shownSrc, setShownSrc] = useState('');
+  const [shown, setShown] = useState<{ key: string; src: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadMessage, setLoadMessage] = useState('正在加载照片…');
   const [extracted, setExtracted] = useState<CameraFacts>({});
   const album = selection ? albums[selection.albumIndex] : undefined;
   const photo = album && selection ? album.photos[selection.photoIndex] : undefined;
+  const photoKey = album && photo ? `${album.id}/${photo.id}` : '';
+  const imageSrc = shown?.key === photoKey ? shown.src : (photo?.thumb ?? photo?.src ?? '');
+  const isOpen = selection !== null;
+
+  const animateShell = (reverse: boolean) => {
+    const element = shell.current;
+    if (!element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve(null);
+    const target = element.getBoundingClientRect();
+    const origin = source.current?.getBoundingClientRect();
+    const visible = origin && origin.width > 0 && origin.height > 0 && origin.bottom > 0 && origin.top < innerHeight && origin.right > 0 && origin.left < innerWidth;
+    const from = visible ? {
+      transform: `translate(${origin.x + origin.width / 2 - target.x - target.width / 2}px, ${origin.y + origin.height / 2 - target.y - target.height / 2}px) scale(${origin.width / target.width}, ${origin.height / target.height})`,
+      opacity: 0.9,
+    } : { transform: 'scale(.96)', opacity: 0 };
+    const to = { transform: 'translate(0, 0) scale(1)', opacity: 1 };
+    element.classList.add('is-animating');
+    const animation = element.animate(reverse ? [to, { ...from, opacity: 0 }] : [from, to], {
+      duration: reverse ? 300 : 420,
+      easing: reverse ? 'cubic-bezier(.4, 0, 1, 1)' : 'cubic-bezier(.2, .8, .2, 1)',
+      fill: reverse ? 'forwards' : 'none',
+    });
+    return animation.finished.then(() => animation).catch(() => null).then(finished => {
+      if (!reverse && !closing.current) element.classList.remove('is-animating');
+      return finished;
+    });
+  };
+
+  const requestClose = () => {
+    if (closing.current) return;
+    closing.current = true;
+    dialog.current?.classList.add('is-closing');
+    void animateShell(true).then(animation => {
+      // Keep the last frame in place until the dialog leaves the top layer.
+      dialog.current?.close();
+      animation?.cancel();
+      shell.current?.classList.remove('is-animating');
+      source.current?.focus({ preventScroll: true });
+      onClose();
+    });
+  };
 
   useEffect(() => {
     const element = dialog.current;
     if (!element) return;
-    if (selection && !element.open) element.showModal();
-    else if (!selection && element.open) element.close();
-  }, [selection]);
+    if (isOpen && !element.open) {
+      closing.current = false;
+      element.classList.remove('is-closing');
+      element.showModal();
+      element.focus({ preventScroll: true });
+      element.classList.add('is-opening');
+      void animateShell(false).then(() => element.classList.remove('is-opening'));
+    } else if (!isOpen && element.open) {
+      element.close();
+      source.current?.focus({ preventScroll: true });
+    }
+    // The transition only runs when the dialog opens or closes, not when the selected photo changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (!photo || !album) return;
     let cancelled = false;
     const controller = new AbortController();
-    const timer = setTimeout(() => setLoading(true), shownSrc ? 180 : 0);
+    const timer = setTimeout(() => setLoading(true), 220);
     const image = new Image();
     image.onload = () => {
       if (cancelled) return;
       clearTimeout(timer);
-      setShownSrc(image.src);
+      setShown({ key: `${album.id}/${photo.id}`, src: image.src });
       setLoading(false);
     };
     image.onerror = () => {
@@ -47,8 +100,9 @@ export function Lightbox({ albums, selection, onMove, onSelect, onClose }: {
       else { clearTimeout(timer); setLoadMessage('照片暂时无法加载'); setLoading(true); }
     };
     image.src = photo.src;
-    // Reset facts for the newly selected remote image.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(false);
+    // Reset facts for the newly selected remote image.
     setExtracted({});
     setLoadMessage('正在加载照片…');
     fetch(`/api/metadata/${encodeURIComponent(album.id)}/${encodeURIComponent(photo.id)}`, { cache: 'no-store', signal: controller.signal })
@@ -56,9 +110,7 @@ export function Lightbox({ albums, selection, onMove, onSelect, onClose }: {
       .then(data => { if (!cancelled && data?.facts) setExtracted(data.facts); })
       .catch(() => {});
     return () => { cancelled = true; clearTimeout(timer); controller.abort(); };
-    // The requested image is the effect dependency; shownSrc intentionally remains the previous photo while loading.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [album?.id, photo?.id, photo?.src]);
+  }, [album, photo]);
 
   useEffect(() => {
     if (!selection) return;
@@ -76,11 +128,11 @@ export function Lightbox({ albums, selection, onMove, onSelect, onClose }: {
   const lon = photo?.lon;
   const hasMap = lat !== undefined && lon !== undefined;
 
-  return <dialog ref={dialog} className="lightbox" aria-label={album && selection ? `${album.title}，第 ${selection.photoIndex + 1} 张照片` : '照片浏览器'} onClose={onClose} onClick={event => { if (event.target === dialog.current) onClose(); }} onTouchStart={event => { touchStart.current = event.changedTouches[0].screenX; }} onTouchEnd={event => { const distance = event.changedTouches[0].screenX - touchStart.current; if (Math.abs(distance) > 55) onMove(distance < 0 ? 1 : -1); }}>
-    <div className="lightbox-shell">
-      <button className="lightbox-close icon-button" type="button" aria-label="关闭照片" onClick={onClose}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19" /></svg></button>
+  return <dialog ref={dialog} className="lightbox" tabIndex={-1} aria-label={album && selection ? `${album.title}，第 ${selection.photoIndex + 1} 张照片` : '照片浏览器'} onClose={() => { if (selection && !closing.current) onClose(); }} onCancel={event => { event.preventDefault(); requestClose(); }} onClick={event => { if (event.target === dialog.current) requestClose(); }} onTouchStart={event => { touchStart.current = event.changedTouches[0].screenX; }} onTouchEnd={event => { const distance = event.changedTouches[0].screenX - touchStart.current; if (Math.abs(distance) > 55) onMove(distance < 0 ? 1 : -1); }}>
+    <div ref={shell} className="lightbox-shell">
+      <button className="lightbox-close icon-button" type="button" aria-label="关闭照片" onClick={requestClose}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19" /></svg></button>
       <button className="lightbox-prev icon-button" type="button" aria-label="上一张" onClick={() => onMove(-1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7" /></svg></button>
-      <div className={`lightbox-media${shownSrc ? ' has-photo' : ''}`}><img src={shownSrc || undefined} alt={photo?.alt ?? ''} />{loading && <span className="lightbox-loading" role="status">{loadMessage}</span>}</div>
+      <div className={`lightbox-media${imageSrc ? ' has-photo' : ''}`}><img src={imageSrc || undefined} alt={photo?.alt ?? ''} />{loading && <span className="lightbox-loading" role="status">{loadMessage}</span>}</div>
       <button className="lightbox-next icon-button" type="button" aria-label="下一张" onClick={() => onMove(1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7" /></svg></button>
       {album && photo && facts && <div className="lightbox-caption">
         <h2>{album.title}</h2>

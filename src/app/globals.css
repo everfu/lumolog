@@ -121,6 +121,14 @@ main{padding-bottom:var(--bar)}
 }
 .lightbox[open]{display:grid}
 .lightbox::backdrop{background:rgba(0,0,0,.68);backdrop-filter:saturate(180%) blur(20px)}
+.lightbox.is-opening{animation:lightbox-scrim-in .42s ease-out both}
+.lightbox.is-closing{animation:lightbox-scrim-out .3s ease-in both}
+.lightbox.is-opening::backdrop{animation:lightbox-backdrop-in .42s ease-out both}
+.lightbox.is-closing::backdrop{animation:lightbox-backdrop-out .3s ease-in both}
+@keyframes lightbox-scrim-in{from{background:transparent}to{background:rgba(0,0,0,.68)}}
+@keyframes lightbox-scrim-out{from{background:rgba(0,0,0,.68)}to{background:transparent}}
+@keyframes lightbox-backdrop-in{from{opacity:0}to{opacity:1}}
+@keyframes lightbox-backdrop-out{from{opacity:1}to{opacity:0}}
 .lightbox-shell{
   width:min(70vw,1010px);
   height:auto;
@@ -131,7 +139,10 @@ main{padding-bottom:var(--bar)}
   border-radius:12px;
   background:#202327;
   box-shadow:0 25px 70px #0008;
+  transform-origin:center;
 }
+.lightbox-shell.is-animating > :not(.lightbox-media){opacity:0!important;pointer-events:none}
+.lightbox-shell.is-animating .lightbox-loading{opacity:0}
 .lightbox-media{
   display:block;position:absolute;inset:0;
   padding:0;background:#202327;
@@ -182,9 +193,13 @@ main{padding-bottom:var(--bar)}
 }
 .lightbox-prev{left:18px}
 .lightbox-next{right:18px}
-.lightbox-close{position:absolute;top:16px;right:16px;width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid #ffffff75;border-radius:50%;background:#131a21a8;backdrop-filter:blur(12px)}
+.lightbox-close{position:absolute;top:16px;right:16px;width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid #ffffff75;border-radius:50%;background:#131a21a8;backdrop-filter:blur(12px);transition:opacity .24s ease,background-color .2s ease,color .2s ease}
 .lightbox-close svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .lightbox-close:hover{background:#fff;color:#151719}
+@media(hover:hover) and (pointer:fine){
+  .lightbox-close{opacity:0;pointer-events:none}
+  .lightbox-shell:hover .lightbox-close,.lightbox-close:focus-visible{opacity:1;pointer-events:auto}
+}
 .lightbox-prev:hover,.lightbox-next:hover{
   background:#fff;color:#151719;border-color:#fff;
 }

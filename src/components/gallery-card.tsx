@@ -5,7 +5,7 @@ import Link from 'next/link';
 import type { Album } from '@/lib/gallery-schema';
 import { termUrl } from '@/lib/gallery-view';
 
-export function GalleryCard({ album, index, onOpen }: { album: Album; index: number; onOpen: () => void }) {
+export function GalleryCard({ album, index, onOpen }: { album: Album; index: number; onOpen: (source: HTMLButtonElement) => void }) {
   const [loaded, setLoaded] = useState(false);
   const image = useRef<HTMLImageElement>(null);
   useEffect(() => {
@@ -21,7 +21,7 @@ export function GalleryCard({ album, index, onOpen }: { album: Album; index: num
   }, []);
   const cover = album.photos[0];
   return <article className={`gallery-card${loaded ? ' is-loaded' : ''}`}>
-    <button className="gallery-open" type="button" aria-label={`查看${album.title}的照片`} onClick={onOpen}>
+    <button className="gallery-open" type="button" aria-label={`查看${album.title}的照片`} onClick={event => onOpen(event.currentTarget)}>
       <img ref={image} src={cover.thumb ?? cover.src} alt={cover.alt} loading={index < 4 ? 'eager' : 'lazy'} fetchPriority={index === 0 ? 'high' : undefined} decoding="async" onLoad={() => setLoaded(true)} onError={event => { const img = event.currentTarget; if (!img.dataset.failed) { img.dataset.failed = 'true'; img.src = '/images/photo-fallback.svg'; } setLoaded(true); }} />
       <span className="card-shade" /><span className="card-bottom"><span className="card-title">{album.title}</span></span>
     </button>
