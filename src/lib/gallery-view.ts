@@ -15,7 +15,14 @@ export function albumsFor(gallery: Gallery, kind?: 'categories' | 'tags', term?:
 export function termsFor(gallery: Gallery, kind: 'categories' | 'tags') {
   const grouped = new Map<string, Album[]>();
   for (const album of orderedAlbums(gallery)) {
-    for (const term of new Set(album[kind])) grouped.set(term, [...(grouped.get(term) ?? []), album]);
+    for (const term of new Set(album[kind])) {
+      let albums = grouped.get(term);
+      if (!albums) {
+        albums = [];
+        grouped.set(term, albums);
+      }
+      albums.push(album);
+    }
   }
   return [...grouped].sort(([a], [b]) => a.localeCompare(b, 'zh-CN')).map(([name, albums]) => ({ name, albums }));
 }

@@ -23,4 +23,20 @@ describe('gallery source', () => {
       fetchImage.mockRestore();
     }
   });
+
+  it('reads updated remote JSON on the next request', async () => {
+    vi.stubEnv('GALLERY_JSON_URL', 'https://example.com/gallery.json');
+    const first = { ...localData, albums: [localData.albums[0]] };
+    const second = { ...localData, albums: [localData.albums[1]] };
+    const fetchImage = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json(first))
+      .mockResolvedValueOnce(Response.json(second));
+    try {
+      expect((await getGallery()).albums[0].id).toBe(first.albums[0].id);
+      expect((await getGallery()).albums[0].id).toBe(second.albums[0].id);
+      expect(fetchImage).toHaveBeenCalledTimes(2);
+    } finally {
+      fetchImage.mockRestore();
+    }
+  });
 });

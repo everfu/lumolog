@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import sample from '../../data';
 import { gallerySchema } from './gallery-schema';
+import { remoteImageOrigins } from './image-origins';
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe('gallery data contract', () => {
   it('accepts the migrated local gallery', () => {
@@ -24,5 +27,22 @@ describe('gallery data contract', () => {
     insecure.albums[0].photos[0].src = 'http://example.com/photo.jpg';
     expect(gallerySchema.safeParse(insecure).success).toBe(false);
     expect(gallerySchema.safeParse({ ...sample, version: 2 }).success).toBe(false);
+  });
+
+  it('only accepts image sources from configured HTTPS origins', () => {
+    const remote = structuredClone(sample);
+    remote.albums[0].photos[0].src = 'https://photos.example.com/full.jpg?token=abc';
+    remote.albums[0].photos[0].thumb = 'https://photos.example.com/thumb.jpg';
+    expect(gallerySchema.safeParse(remote).success).toBe(false);
+    vi.stubEnv('IMAGE_REMOTE_ORIGINS', 'https://photos.example.com,https://other.example.com');
+    expect(gallerySchema.safeParse(remote).success).toBe(true);
+    remote.albums[0].photos[0].thumb = 'https://unlisted.example.com/thumb.jpg';
+    expect(gallerySchema.safeParse(remote).success).toBe(false);
+  });
+
+  it('rejects wildcard and malformed image origin configuration', () => {
+    expect(() => remoteImageOrigins('https://*.example.com')).toThrow('IMAGE_REMOTE_ORIGINS');
+    expect(() => remoteImageOrigins('http://photos.example.com')).toThrow('IMAGE_REMOTE_ORIGINS');
+    expect(() => remoteImageOrigins('https://photos.example.com/path')).toThrow('IMAGE_REMOTE_ORIGINS');
   });
 });

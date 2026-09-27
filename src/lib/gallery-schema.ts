@@ -1,11 +1,14 @@
 import { z } from 'zod';
+import { isAllowedRemoteImage } from './image-origins';
 
-const imageUrl = z.string().url().refine(value => {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' && !url.username && !url.password;
-  } catch { return false; }
-}).or(z.string().regex(/^\/images\/[a-zA-Z0-9/_-]+\.(?:jpe?g|png|webp|avif)$/));
+const localImagePath = /^\/images\/[a-zA-Z0-9/_-]+\.(?:jpe?g|png|webp|avif)$/;
+const imageUrl = z.string().refine(value => localImagePath.test(value) || isAllowedRemoteImage(value), {
+  message: 'image must use /images/ or an origin listed in IMAGE_REMOTE_ORIGINS',
+});
+const metadataUrl = z.string().url().refine(value => {
+  const url = new URL(value);
+  return url.protocol === 'https:' && !url.username && !url.password;
+}).or(z.string().regex(localImagePath));
 
 const optionalText = z.string().trim().max(500).optional();
 const id = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
@@ -15,7 +18,7 @@ export const photoSchema = z.strictObject({
   id,
   src: imageUrl,
   thumb: imageUrl.optional(),
-  metadataSrc: imageUrl.optional(),
+  metadataSrc: metadataUrl.optional(),
   alt: z.string().trim().min(1).max(300),
   caption: optionalText,
   credit: z.strictObject({
